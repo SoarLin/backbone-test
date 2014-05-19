@@ -1,227 +1,41 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>To-do App in Backbone.js</title>
-
-  <!-- ========= -->
-  <!--    CSS    -->
-  <!-- ========= -->
-  <style type="text/css">
-    /* Hides bullet points from todo list */
-    #todoapp ul {
-      list-style-type: none;
-    }
-    #todo-list input.edit {
-      display: none; /* Hides input box*/
-    }
-    #todo-list .editing label {
-      display: none; /* Hides label text when .editing*/
-    }
-    #todo-list .editing input.edit {
-      display: inline; /* Shows input text box when .editing*/
-    }
-  </style>
+  <meta charset="utf-8" />
+  <title>Your first Backbone.js App | Tutorialzine </title>
+  <!-- Google web fonts -->
+  <link href="http://fonts.googleapis.com/css?family=PT+Sans:400,700" rel='stylesheet' />
+      <!-- The main CSS file -->
+  <link href="assets/css/style.css" rel="stylesheet" />
 </head>
+
 <body>
-  <!-- ========= -->
-  <!-- Your HTML -->
-  <!-- ========= -->
 
-  <section id="todoapp">
-    <header id="header">
-      <h1>Todos</h1>
-      <input id="new-todo" placeholder="What needs to be done?">
-      <div>
-        <a href="#/">show all</a>
-        <a href="#/pending">show pading</a>
-        <a href="#/completed">show completed</a>
-      </div>
-    </header>
-    <section id="main">
-      <ul id="todo-list"></ul>
-    </section>
-  </section>
+  <form id="main" method="post" action="submit.php">
+    <h1>My Services</h1>
 
-  <div>
-    <p>Find the tutorial and code in <a href="http://adrianmejia.com/blog/2012/09/11/backbone-dot-js-for-absolute-beginners-getting-started/">here</a></p>
-  </div>
+    <ul id="services">
+    <!-- The services will be inserted here -->
+    </ul>
 
-  <!-- Templates  -->
-  <script type="text/template" id="item-template">
-    <div class="view">
-      <input class="toggle" type="checkbox" <%= completed ? 'checked' : '' %>>
-      <label><%- title %></label>
-      <input class="edit" value="<%- title %>">
-      <button class="destroy">remove</button>
+    <p id="total">total: <span>$0</span></p>
+    <input type="submit" id="order" value="Order" />
+  </form>
+
+<!--   <footer>
+    <h2><a href="http://tutorialzine.com/2013/04/services-chooser-backbone-js/"><i>Tutorial:</i> Your first Backbone.js App</a></h2>
+    <div id="tzine-actions">
+      
+      <a id="tzine-download" href="http://tutorialzine.com/2013/04/services-chooser-backbone-js/" title="Download This Example!">Download</a>
     </div>
-  </script>
+  </footer> -->
 
-  <!-- ========= -->
-  <!-- Libraries -->
-  <!-- ========= -->
-  <script src="js/jquery-1.11.1.min.js"></script>
-  <script src="js/underscore-min.js"></script>
-  <script src="js/backbone-min.js"></script>
-  <script src="js/backbone.localStorage-min.js"></script>
+  <!-- JavaScript Includes -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.0.0/backbone-min.js"></script>
 
-  <!-- =============== -->
-  <!-- Javascript code -->
-  <!-- =============== -->
-  <script type="text/javascript">
-    'use strict';
-
-    var app = {}; // create namespace for our app
-    
-    //--------------
-    // Models
-    //--------------
-    app.Todo = Backbone.Model.extend({
-      defaults: {
-        title: '',
-        completed: false
-      },
-      toggle: function(){
-        this.save({completed: !this.get('completed')});
-      }
-    });
-
-    //--------------
-    // Collections
-    //--------------
-    app.TodoList = Backbone.Collection.extend({
-      model: app.Todo,
-      localStorage: new Store("backbone-todo"),
-      completed: function(){
-        return this.filter(function( todo ){
-          return todo.get('completed');
-        });
-      },
-      remaining: function(){
-        return this.without.apply( this, this.completed() );
-      }
-    });
-
-    // instance of the Collection
-    app.todoList = new app.TodoList();
-
-    //--------------
-    // Views
-    //--------------
-    
-    // renders individual todo items list (li)
-    app.TodoView = Backbone.View.extend({
-      tagName: 'li',
-      template: _.template($('#item-template').html()),
-      render: function(){
-        this.$el.html(this.template(this.model.toJSON()));
-        this.input = this.$('.edit');
-        return this; // enable chained calls
-      },
-      initialize: function(){
-        this.model.on('change', this.render, this);
-        this.model.on('destroy', this.remove, this); // remove: Convenience Backbone's function for removing the view from the DOM.
-      },
-      events: {
-        'dblclick label' : 'edit',
-        'keypress .edit' : 'updateOnEnter',
-        'blur .edit' : 'close',
-        'click .toggle' : 'toggleCompleted',
-        'click .destroy': 'destroy'
-      },
-      edit: function(){
-        this.$el.addClass('editing');
-        this.input.focus();
-      },
-      close: function(){
-        var value = this.input.val().trim();
-        if(value) {
-          this.model.save({title: value});
-        }
-        this.$el.removeClass('editing');
-      },
-      updateOnEnter: function(e){
-        if(e.which == 13){
-          this.close();
-        }
-      },
-      toggleCompleted: function(){
-        this.model.toggle();
-      },
-      destroy: function(){
-        this.model.destroy();
-      }
-    });
-
-    // renders the full list of todo items calling TodoView for each one.
-    app.AppView = Backbone.View.extend({
-      el: '#todoapp',
-      initialize: function () {
-        this.input = this.$('#new-todo');
-        app.todoList.on('add', this.addOne, this);
-        app.todoList.on('reset', this.addAll, this);
-        app.todoList.fetch(); // Loads list from local storage
-      },
-      events: {
-        'keypress #new-todo': 'createTodoOnEnter'
-      },
-      createTodoOnEnter: function(e){
-        if ( e.which !== 13 || !this.input.val().trim() ) { // ENTER_KEY = 13
-          return;
-        }
-        app.todoList.create(this.newAttributes());
-        this.input.val(''); // clean input box
-      },
-      addOne: function(todo){
-        var view = new app.TodoView({model: todo});
-        $('#todo-list').append(view.render().el);
-      },
-      addAll: function(){
-        this.$('#todo-list').html(''); // clean the todo list
-        // filter todo item list
-        switch(window.filter){
-          case 'pending':
-            _.each(app.todoList.remaining(), this.addOne);
-            break;
-          case 'completed':
-            _.each(app.todoList.completed(), this.addOne);
-            break;
-          default:
-            app.todoList.each(this.addOne, this);
-            break;
-        }
-      },
-      newAttributes: function(){
-        return {
-          title: this.input.val().trim(),
-          completed: false
-        }
-      }
-    });
-
-    app.Router = Backbone.Router.extend({
-      routes: {
-        '*filter' : 'setFilter'
-      },
-      setFilter: function(params){
-        console.log('app.router.params = ' + params);
-        window.filter = '';
-        if (params != null)
-          window.filter = params.trim();
-        app.todoList.trigger('reset');
-      }
-    });
-
-    //--------------
-    // Initializers
-    //--------------
-
-    app.router = new app.Router();
-    Backbone.history.start();
-    app.appView = new app.AppView();
-
-  </script>
-
+  <script src="assets/js/script.js"></script>
 </body>
 </html>
+
